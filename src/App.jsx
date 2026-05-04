@@ -40,6 +40,7 @@ function App() {
   }, []);
 
   const [selectedState, setSelectedState] = useState('All States');
+  const [selectedStatus, setSelectedStatus] = useState('All Status');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
   const indianStates = [
@@ -73,11 +74,15 @@ function App() {
     const matchesState = selectedState === 'All States' || 
                         guest.state?.trim().toLowerCase() === selectedState.trim().toLowerCase();
 
+    const matchesStatus = selectedStatus === 'All Status' || 
+      (selectedStatus === 'Booked Room' && guest.roomStatus?.toLowerCase().includes('booked')) ||
+      (selectedStatus === 'Checkout' && guest.roomStatus?.toLowerCase().includes('checkout'));
+
     const guestDate = new Date(guest.arrivalDate);
     const matchesDate = (!dateRange.start || guestDate >= new Date(dateRange.start)) &&
                         (!dateRange.end || guestDate <= new Date(dateRange.end));
 
-    return matchesSearch && matchesState && matchesDate;
+    return matchesSearch && matchesState && matchesStatus && matchesDate;
   });
 
   if (!data) {
@@ -188,7 +193,6 @@ function App() {
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', flex: 1, justifyContent: 'flex-end' }}>
-          {/* Tabs */}
           <div className="glass-card" style={{ padding: '0.4rem', display: 'flex', borderRadius: '14px', background: 'rgba(255,255,255,0.03)' }}>
             <button 
               onClick={() => setActiveTab('dashboard')}
@@ -222,7 +226,6 @@ function App() {
             </button>
           </div>
 
-          {/* Search */}
           <div style={{ position: 'relative' }}>
             <Search size={16} style={{ position: 'absolute', left: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
             <input 
@@ -234,7 +237,6 @@ function App() {
             />
           </div>
 
-          {/* State Filter */}
           <div style={{ position: 'relative' }}>
             <select 
               value={selectedState}
@@ -260,7 +262,31 @@ function App() {
             <MapPin size={16} style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', pointerEvents: 'none' }} />
           </div>
 
-          {/* Date Range */}
+          <div style={{ position: 'relative' }}>
+            <select 
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              style={{ 
+                appearance: 'none',
+                background: 'rgba(255, 255, 255, 0.05)', 
+                border: '1px solid var(--glass-border)', 
+                borderRadius: '12px',
+                padding: '0 2.5rem 0 1rem',
+                color: 'white',
+                outline: 'none',
+                cursor: 'pointer',
+                minWidth: '140px',
+                height: '42px',
+                fontSize: '0.9rem'
+              }}
+            >
+              <option value="All Status" style={{ background: '#1e293b' }}>All Status</option>
+              <option value="Booked Room" style={{ background: '#1e293b' }}>Booked Room</option>
+              <option value="Checkout" style={{ background: '#1e293b' }}>Checkout</option>
+            </select>
+            <LayoutDashboard size={16} style={{ position: 'absolute', right: '0.8rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', pointerEvents: 'none' }} />
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(255,255,255,0.03)', padding: '0 0.8rem', borderRadius: '12px', border: '1px solid var(--glass-border)', height: '42px' }}>
             <Calendar size={14} color="var(--text-secondary)" />
             <input 
@@ -278,7 +304,6 @@ function App() {
             />
           </div>
 
-          {/* Export Button */}
           <button 
             onClick={exportToCSV}
             style={{ 

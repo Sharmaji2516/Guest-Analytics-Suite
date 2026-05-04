@@ -92,11 +92,28 @@ const cityToStateMap = {
 const inferState = (city) => {
   if (!city) return '';
   const c = city.toString().toLowerCase().trim();
-  // Try exact match or partial match
   for (const [key, value] of Object.entries(cityToStateMap)) {
     if (c.includes(key)) return value;
   }
   return '';
+};
+
+/**
+ * Robustly parses Indian date formats (DD/MM/YYYY)
+ */
+const parseDate = (dateStr) => {
+  if (!dateStr) return null;
+  const parts = dateStr.toString().split(/[\/\-]/);
+  if (parts.length === 3) {
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    let year = parseInt(parts[2], 10);
+    if (year < 100) year += 2000;
+    const d = new Date(year, month, day);
+    return isNaN(d) ? null : d;
+  }
+  const d = new Date(dateStr);
+  return isNaN(d) ? null : d;
 };
 
 export const mapGuestData = (rawData) => {
@@ -111,21 +128,55 @@ export const mapGuestData = (rawData) => {
 
     const arrivingDate = getVal(['Arriving Date', 'Arrival Date', 'Arrival', 'Check In', 'Date Arrive']) || '';
     const departureDate = getVal(['Departure Date', 'Departure', 'Check Out', 'Date Depart']) || '';
-    const durationFromSheet = parseNum(getVal(['Duration Of Stay (Days)', 'Stay Duration', 'Days', 'No of Days']));
-    const calculatedDuration = calculateDays(arrivingDate, departureDate);
     
     const cityFrom = getVal(['City From Which You Arrive', 'From', 'Origin', 'City From', 'Coming From']) || '';
     const providedState = getVal(['State', 'Province', 'Region', 'State/UT']) || '';
     const state = providedState || inferState(cityFrom);
 
+    const manualDuration = getVal(['Duration Of Stay (Days)', 'Duration', 'Stay Days', 'Days']) || '';
+    let durationStr = '';
+
+    if (manualDuration) {
+      const lowerManual = manualDuration.toString().toLowerCase();
+      if (lowerManual.includes('hour')) {
+        durationStr = '1 Day';
+      } else {
+        // Try to extract just the number
+        const numMatch = lowerManual.match(/(\d+)/);
+        if (numMatch) {
+          durationStr = numMatch[1];
+        } else {
+          durationStr = manualDuration.toString();
+        }
+      }
+    }
+
+    // Fallback to calculation if manual is missing or "9 PM" style
+    if (!durationStr || durationStr.toLowerCase().includes('pm') || durationStr.toLowerCase().includes('am')) {
+      const arrival = parseDate(arrivingDate);
+      const departure = parseDate(departureDate);
+      
+      if (arrival && departure) {
+        const diffTime = Math.abs(departure - arrival);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        durationStr = diffDays === 0 ? 'Same Day' : diffDays.toString();
+      }
+    }
+
+    const deposit = parseNum(getVal(['Total Amount Deposited', 'Deposited Amount', 'Deposit']));
+    const normalAcc = parseNum(getVal(['Normal Account', 'Normal Amount', 'Account']));
+
     return {
-      email: getVal(['Email Address', 'Email']) || '',
-      name: getVal(['Guest Name', 'Name', 'Full Name', 'Guest']) || '',
-      address: getVal(['Full Address', 'Address', 'Current Address']) || '',
+      name: getVal(['Guest Name', 'Name', 'Guest']) || '',
+      fatherName: getVal(['Father Name', 'Father', 'S/O', 'f:']) || '',
+      caste: getVal(['Caste', 'Jaati', 'Category']) || '',
+      address: getVal(['Full Address', 'Address']) || '',
       nativePlace: getVal(['Mul Niwas', 'Native Place', 'Mool Niwas', 'Home Town']) || '',
       mobile: getVal(['Mobile Number', 'Mobile', 'Phone', 'Contact']) || '',
       arrivalDate: arrivingDate,
+      arrivalTime: getVal(['Arrival Time', 'Check-in Time', 'Entry Time', 'Timestamp', 'Time']) || '',
       departureDate: departureDate,
+      duration: durationStr,
       arrivalReason: getVal(['Arrival Reason', 'Reason', 'Purpose']) || '',
       from: cityFrom,
       state: state,
@@ -135,13 +186,10 @@ export const mapGuestData = (rawData) => {
       children: parseNum(getVal(['[Child]', 'Child', 'Children', 'No of Children', 'Kids'])),
       totalPersons: parseNum(getVal(['Total Person', 'Total Persons', 'Total People'])),
       vehicleType: getVal(['Vehicle Type', 'Vehicle', 'Mode']) || '',
-      duration: calculatedDuration || durationFromSheet || 1,
-      depositedAmount: parseNum(getVal(['Total Amount Deposited', 'Deposited Amount', 'Deposit'])),
-      normalAmount: parseNum(getVal(['Normal Account', 'Normal Amount', 'Account'])),
-      amountSpent: parseNum(getVal(['Total Amount Deposited', 'Deposited Amount', 'Deposit'])) + 
-                   parseNum(getVal(['Normal Account', 'Normal Amount', 'Account'])),
-      roomStatus: getVal(['Room Status', 'Status']) || '',
-      caste: getVal(['Caste', 'Jaati', 'Category']) || ''
+      depositedAmount: deposit,
+      normalAmount: normalAcc,
+      amountSpent: deposit + normalAcc,
+      roomStatus: getVal(['Room Status', 'Status']) || ''
     };
   });
 };

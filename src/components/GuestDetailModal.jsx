@@ -53,13 +53,14 @@ const GuestDetailModal = ({ guest, onClose }) => {
           <DetailItem icon={Home} label="Native Place (Mul Niwas)" value={guest.nativePlace} />
           <DetailItem icon={MapPin} label="Full Address" value={guest.address} />
           <DetailItem icon={Calendar} label="Arrival Date" value={guest.arrivalDate} />
+          <DetailItem icon={Clock} label="Arrival Time" value={guest.arrivalTime} />
           <DetailItem icon={Calendar} label="Departure Date" value={guest.departureDate} />
           <DetailItem icon={Clock} label="Duration of Stay" value={`${guest.duration} Days`} />
           <DetailItem icon={Info} label="Room Status" value={guest.roomStatus} />
           <DetailItem icon={MapPin} label="Route" value={<span>{guest.from} <span style={{color:'var(--primary)'}}>→ Chittorgarh →</span> {guest.to}</span>} />
           <DetailItem icon={Car} label="Vehicle Type" value={guest.vehicleType} />
-          <DetailItem icon={Users} label="Occupancy" value={`${guest.males} Males, ${guest.females} Females, ${guest.children} Children`} />
-          <DetailItem icon={Users} label="Total Persons" value={guest.totalPersons} />
+          <DetailItem icon={User} label="Occupancy" value={`${(guest.males || 0)} Males, ${(guest.females || 0)} Females, ${(guest.children || 0)} Children`} />
+          <DetailItem icon={User} label="Total Persons" value={guest.totalPersons} />
           <DetailItem icon={IndianRupee} label="Deposited Amount" value={`₹${guest.depositedAmount?.toLocaleString() || 0}`} />
           <DetailItem icon={IndianRupee} label="Normal Account" value={`₹${guest.normalAmount?.toLocaleString() || 0}`} />
           <DetailItem icon={IndianRupee} label="Total Expenses" value={`₹${guest.amountSpent?.toLocaleString() || 0}`} />

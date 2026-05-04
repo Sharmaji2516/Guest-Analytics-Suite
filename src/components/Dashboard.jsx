@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, IndianRupee, Clock, MapPin, UserCheck, TrendingUp, PieChart as PieIcon } from 'lucide-react';
+import { User, IndianRupee, Clock, MapPin, UserCheck, TrendingUp, PieChart as PieIcon } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
@@ -44,7 +44,7 @@ const Dashboard = ({ data, globalData, selectedState }) => {
   const topReasonName = Object.entries(topReason).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
   const metrics = [
-    { label: isFiltered ? `${selectedState} Records` : 'Total Records', value: totalGuests, icon: Users, color: '#6366f1' },
+    { label: isFiltered ? `${selectedState} Records` : 'Total Records', value: totalGuests, icon: User, color: '#6366f1' },
     { label: isFiltered ? `${selectedState} Revenue` : 'Total Revenue', value: `₹${totalSpent.toLocaleString()}`, icon: IndianRupee, color: '#10b981' },
     { label: 'Avg Stay (Days)', value: avgStay, icon: Clock, color: '#f59e0b' },
     { label: 'Top Reason', value: topReasonName, icon: TrendingUp, color: '#ec4899' },
