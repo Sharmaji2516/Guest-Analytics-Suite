@@ -1,10 +1,12 @@
-import React from 'react';
-import { User, IndianRupee, Clock, MapPin, UserCheck, TrendingUp, PieChart as PieIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { User, IndianRupee, Clock, MapPin, UserCheck, TrendingUp, PieChart as PieIcon, ExternalLink } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 
-const Dashboard = ({ data, globalData, selectedState }) => {
+const Dashboard = ({ data, globalData, selectedState, onSelectGuest }) => {
+  const [expandedCard, setExpandedCard] = useState(null); // 'occupants', 'checkins', 'checkouts'
+
   if (!globalData || globalData.length === 0) {
     return (
       <div className="glass-card" style={{ padding: '4rem', textAlign: 'center' }}>
@@ -17,6 +19,30 @@ const Dashboard = ({ data, globalData, selectedState }) => {
   const isFiltered = selectedState !== 'All States';
   const displayData = isFiltered ? data : globalData;
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Live Stay Monitor Logic
+  const checkinsToday = displayData.filter(g => {
+    const d = new Date(g.arrivalDate);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime() === today.getTime();
+  });
+
+  const checkoutsToday = displayData.filter(g => {
+    const d = new Date(g.departureDate);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime() === today.getTime();
+  });
+
+  const currentOccupants = displayData.filter(g => {
+    const arr = new Date(g.arrivalDate);
+    const dep = new Date(g.departureDate);
+    arr.setHours(0, 0, 0, 0);
+    dep.setHours(0, 0, 0, 0);
+    return arr <= today && (dep > today || !g.departureDate);
+  });
+
   const totalGuests = displayData.length;
   const totalSpent = displayData.reduce((sum, item) => sum + (item.amountSpent || 0), 0);
   const totalDays = displayData.reduce((sum, item) => sum + (item.duration || 0), 0);
@@ -26,15 +52,6 @@ const Dashboard = ({ data, globalData, selectedState }) => {
   const femaleCount = displayData.reduce((sum, item) => sum + (item.females || 0), 0);
   const childCount = displayData.reduce((sum, item) => sum + (item.children || 0), 0);
   const totalPeople = maleCount + femaleCount + childCount;
-
-  // Financial Breakdown
-  const totalDeposited = displayData.reduce((sum, item) => sum + (item.depositedAmount || 0), 0);
-  const totalNormal = displayData.reduce((sum, item) => sum + (item.normalAmount || 0), 0);
-
-  // VIP Guests (Top 5 spenders)
-  const vipGuests = [...displayData]
-    .sort((a, b) => (b.amountSpent || 0) - (a.amountSpent || 0))
-    .slice(0, 5);
 
   const topReason = [...displayData].reduce((acc, item) => {
     const r = (item.arrivalReason || 'Other').toString();
@@ -50,8 +67,122 @@ const Dashboard = ({ data, globalData, selectedState }) => {
     { label: 'Top Reason', value: topReasonName, icon: TrendingUp, color: '#ec4899' },
   ];
 
+  const toggleExpand = (card) => {
+    setExpandedCard(expandedCard === card ? null : card);
+  };
+
+  const getExpandedList = () => {
+    if (expandedCard === 'occupants') return currentOccupants;
+    if (expandedCard === 'checkins') return checkinsToday;
+    if (expandedCard === 'checkouts') return checkoutsToday;
+    return [];
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      
+      {/* Live Monitor Section */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+        <div 
+          onClick={() => toggleExpand('occupants')}
+          className={`glass-card ${expandedCard === 'occupants' ? 'active-card' : ''}`} 
+          style={{ padding: '1.5rem', cursor: 'pointer', border: `1px solid ${expandedCard === 'occupants' ? '#10b981' : 'rgba(16, 185, 129, 0.2)'}`, background: 'rgba(16, 185, 129, 0.05)', transition: 'all 0.3s' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+            <div style={{ padding: '0.75rem', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px' }}>
+              <UserCheck size={24} color="#10b981" />
+            </div>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Current Occupants</h4>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#10b981' }}>{currentOccupants.length} Guests</div>
+            </div>
+          </div>
+          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{expandedCard === 'occupants' ? 'Click to close list' : 'Click to see guest list'}</p>
+        </div>
+
+        <div 
+          onClick={() => toggleExpand('checkins')}
+          className={`glass-card ${expandedCard === 'checkins' ? 'active-card' : ''}`} 
+          style={{ padding: '1.5rem', cursor: 'pointer', border: `1px solid ${expandedCard === 'checkins' ? 'var(--primary)' : 'rgba(99, 102, 241, 0.2)'}`, background: 'rgba(99, 102, 241, 0.05)', transition: 'all 0.3s' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+            <div style={{ padding: '0.75rem', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px' }}>
+              <TrendingUp size={24} color="var(--primary)" />
+            </div>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Today's Check-ins</h4>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary)' }}>{checkinsToday.length} Arrivals</div>
+            </div>
+          </div>
+          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{expandedCard === 'checkins' ? 'Click to close list' : 'Click to see guest list'}</p>
+        </div>
+
+        <div 
+          onClick={() => toggleExpand('checkouts')}
+          className={`glass-card ${expandedCard === 'checkouts' ? 'active-card' : ''}`} 
+          style={{ padding: '1.5rem', cursor: 'pointer', border: `1px solid ${expandedCard === 'checkouts' ? '#f59e0b' : 'rgba(245, 158, 11, 0.2)'}`, background: 'rgba(245, 158, 11, 0.05)', transition: 'all 0.3s' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+            <div style={{ padding: '0.75rem', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '12px' }}>
+              <Clock size={24} color="#f59e0b" />
+            </div>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Today's Check-outs</h4>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f59e0b' }}>{checkoutsToday.length} Departures</div>
+            </div>
+          </div>
+          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{expandedCard === 'checkouts' ? 'Click to close list' : 'Click to see guest list'}</p>
+        </div>
+      </div>
+
+      {/* Expanded List Panel */}
+      {expandedCard && (
+        <div className="glass-card" style={{ padding: '2rem', border: `1px solid var(--glass-border)`, background: 'rgba(255,255,255,0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {expandedCard === 'occupants' ? <UserCheck size={20} /> : expandedCard === 'checkins' ? <TrendingUp size={20} /> : <Clock size={20} />}
+              {expandedCard === 'occupants' ? 'Current Occupants' : expandedCard === 'checkins' ? "Today's Arrivals" : "Today's Departures"}
+            </h3>
+            <span className="badge badge-primary">{getExpandedList().length} Guests Found</span>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1rem' }}>
+            {getExpandedList().map((guest, i) => (
+              <div key={i} style={{ 
+                padding: '1.25rem', 
+                background: 'rgba(255,255,255,0.03)', 
+                borderRadius: '16px', 
+                border: '1px solid rgba(255,255,255,0.05)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '0.25rem' }}>{guest.name}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{guest.from} • {guest.roomStatus}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--primary)', marginTop: '0.25rem' }}>{guest.mobile}</div>
+                </div>
+                <button 
+                  onClick={() => onSelectGuest(guest)}
+                  style={{ 
+                    padding: '0.6rem 1rem', 
+                    background: 'rgba(255,255,255,0.05)', 
+                    color: 'white', 
+                    fontSize: '0.8rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}
+                >
+                  <ExternalLink size={14} /> Profile
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Metric Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
         {metrics.map((m, i) => (
@@ -65,80 +196,6 @@ const Dashboard = ({ data, globalData, selectedState }) => {
             <span className="metric-value">{m.value}</span>
           </div>
         ))}
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
-        {/* VIP Guests & Financial Insights - FULL WIDTH */}
-        <div className="glass-card" style={{ padding: '2.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
-            <div>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.5rem' }}>
-                <UserCheck size={24} color="var(--primary)" /> VIP Guests & Financial Insights
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', marginTop: '0.5rem' }}>Top contributing clients and overall financial health</p>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <span className="badge badge-primary" style={{ padding: '0.6rem 1.2rem', fontSize: '0.9rem' }}>Business Intelligence Panel</span>
-            </div>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
-            {vipGuests.map((guest, i) => (
-              <div key={i} style={{ 
-                display: 'flex', 
-                flexDirection: 'column',
-                gap: '1rem',
-                padding: '1.5rem', 
-                background: 'rgba(255,255,255,0.02)', 
-                borderRadius: '20px',
-                border: '1px solid rgba(255,255,255,0.05)',
-                transition: 'transform 0.2s',
-                cursor: 'default'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '48px', height: '48px', background: 'var(--primary)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.2rem' }}>
-                    {guest.name?.[0]}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '1.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{guest.name}</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{guest.from}</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Stay Duration</div>
-                    <div style={{ fontWeight: 600 }}>{guest.duration} Days</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Total Billing</div>
-                    <div style={{ fontWeight: 800, color: 'var(--accent)', fontSize: '1.2rem' }}>₹{guest.amountSpent?.toLocaleString()}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', paddingTop: '2.5rem', borderTop: '1px solid var(--glass-border)' }}>
-            <div style={{ padding: '2rem', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '20px', border: '1px solid rgba(16, 185, 129, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Total Deposits Collected</div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: '#10b981' }}>₹{totalDeposited.toLocaleString()}</div>
-              </div>
-              <div style={{ width: '60px', height: '60px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <IndianRupee size={28} color="#10b981" />
-              </div>
-            </div>
-            <div style={{ padding: '2rem', background: 'rgba(99, 102, 241, 0.05)', borderRadius: '20px', border: '1px solid rgba(99, 102, 241, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Normal Account Balance</div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)' }}>₹{totalNormal.toLocaleString()}</div>
-              </div>
-              <div style={{ width: '60px', height: '60px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Clock size={28} color="var(--primary)" />
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '1.5rem' }}>

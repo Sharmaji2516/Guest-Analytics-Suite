@@ -4,6 +4,7 @@ import { Database, Search, LayoutDashboard, Table as TableIcon, FileSpreadsheet,
 import { fetchSheetData, mapGuestData } from './utils/googleSheets';
 import Dashboard from './components/Dashboard';
 import GuestTable from './components/GuestTable';
+import GuestDetailModal from './components/GuestDetailModal';
 import './App.css';
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedGuest, setSelectedGuest] = useState(null);
 
   const handleFetchData = async (e) => {
     e.preventDefault();
@@ -331,7 +333,12 @@ function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
           >
-            <Dashboard data={filteredData} globalData={data} selectedState={selectedState} />
+            <Dashboard 
+              data={filteredData} 
+              globalData={data} 
+              selectedState={selectedState} 
+              onSelectGuest={setSelectedGuest} 
+            />
           </motion.div>
         ) : (
           <motion.div
@@ -340,10 +347,20 @@ function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
           >
-            <GuestTable data={filteredData} />
+            <GuestTable 
+              data={filteredData} 
+              onSelectGuest={setSelectedGuest} 
+            />
           </motion.div>
         )}
       </AnimatePresence>
+
+      {selectedGuest && (
+        <GuestDetailModal 
+          guest={selectedGuest} 
+          onClose={() => setSelectedGuest(null)} 
+        />
+      )}
 
       <footer style={{ marginTop: '4rem', padding: '2rem 0', borderTop: '1px solid var(--glass-border)', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
         <p>© 2024 ChittorTech Data Analysis Suite • Built for Premium Guest Management</p>
