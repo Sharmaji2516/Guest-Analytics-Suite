@@ -363,7 +363,7 @@ function App() {
       )}
 
       <footer style={{ marginTop: '4rem', padding: '2rem 0', borderTop: '1px solid var(--glass-border)', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-        <p>© 2024 ChittorTech Data Analysis Suite • Built for Premium Guest Management</p>
+        <p>© {new Date().getFullYear()} <a href="https://chittortech.online" target="_blank" rel="dofollow" style={{ color: 'var(--primary)', fontWeight: 'bold', textDecoration: 'underline' }}>ChittorTech</a> Data Analysis Suite • Built for Premium Guest Management</p>
       </footer>
     </div>
   );
